@@ -17,7 +17,7 @@ jobs:
       - name: 📥 下载私库脚本
         uses: actions/checkout@v4
         with:
-          repository: gunqiu/Zampto-Renew   # 你的私库
+          repository: gunqiu/Zampto-Renew
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private
 
@@ -36,37 +36,77 @@ jobs:
           pip install seleniumbase requests
           seleniumbase install chromedriver
 
-      - name: 🛡️ 启动 Xray 代理
-        env:
-          XRAY_CONFIG: ${{ secrets.XRAY_CONFIG }}
+      # ==============================================
+      # 🔥 已替换为你的 VMess 代理（自动转 SOCKS5 10808）
+      # ==============================================
+      - name: 🛡️ 启动 VMess 代理
         run: |
-          if [ -z "$XRAY_CONFIG" ]; then
-            echo "未配置 Xray，跳过代理"
-          else
-            wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
-            unzip -q Xray-linux-64.zip -d xray_bin
-            chmod +x xray_bin/xray
-            echo "$XRAY_CONFIG" > xray_bin/config.json
-            nohup ./xray_bin/xray run -c ./xray_bin/config.json > xray.log 2>&1 &
-            sleep 4
-            echo "🌐 测试IP："
-            curl -s -x socks5h://127.0.0.1:10808 https://api.ipify.org || echo "⚠️ 代理测试失败，继续执行"
-            echo -e "\n✅ Xray 就绪"
-          fi
+          wget -q https://github.com/v2fly/v2ray-core/releases/latest/download/v2ray-linux-64.zip
+          unzip -q v2ray-linux-64.zip -d v2ray
+          chmod +x v2ray/v2ray
+
+          cat > config.json << EOF
+          {
+            "inbounds": [
+              {
+                "port": 10808,
+                "listen": "127.0.0.1",
+                "protocol": "socks",
+                "settings": {
+                  "auth": "noauth"
+                }
+              }
+            ],
+            "outbounds": [
+              {
+                "protocol": "vmess",
+                "settings": {
+                  "vnext": [
+                    {
+                      "address": "saas.sin.fan",
+                      "port": 443,
+                      "users": [
+                        {
+                          "id": "e4c1c8c0-1d79-4967-a139-03b30ccecc79",
+                          "alterId": 0,
+                          "security": "none"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "streamSettings": {
+                  "network": "ws",
+                  "security": "tls",
+                  "tlsSettings": {
+                    "serverName": "godlike.ccuu.de5.net"
+                  },
+                  "wsSettings": {
+                    "path": "/vmess-aegon?ed=2560",
+                    "headers": {
+                      "Host": "godlike.ccuu.de5.net"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+
+          nohup ./v2ray/v2ray run -c config.json > v2ray.log 2>&1 &
+          sleep 6
+          echo "🌐 测试IP："
+          curl -s -x socks5h://127.0.0.1:10808 https://api.ipify.org || echo "⚠️ 代理测试失败"
+          echo -e "\n✅ VMess 就绪"
 
       - name: 🚀 运行续期脚本
         env:
           PYTHONIOENCODING: utf-8
           ZAMPTO_ACCOUNT: ${{ secrets.ZAMPTO_ACCOUNT }}
           TG_BOT: ${{ secrets.TG_BOT }}
-          XRAY_CONFIG: ${{ secrets.XRAY_CONFIG }}
         run: |
-          if [ -n "$XRAY_CONFIG" ]; then
-            export USE_PROXY="true"
-            echo "🌐 代理已启用"
-          else
-            export USE_PROXY="false"
-          fi
+          export USE_PROXY="true"
+          echo "🌐 代理已启用"
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python zampto_renew.py
 
       - name: 📸 上传截图
