@@ -16,11 +16,10 @@ ZAMPTO_ACCOUNT = os.environ.get('ZAMPTO_ACCOUNT', '')
 TG_BOT = os.environ.get('TG_BOT', '')
 USE_PROXY = os.environ.get('USE_PROXY') == 'true'
 
-# 正确读取环境变量代理（支持 WebShare）
+# 读取环境变量代理
 LOCAL_PROXY = os.environ.get("LOCAL_PROXY", "socks5://127.0.0.1:10808") if USE_PROXY else None
 
 def send_telegram_msg(message):
-    """发送 Telegram 纯文本通知"""
     if not TG_BOT:
         return
     try:
@@ -32,7 +31,6 @@ def send_telegram_msg(message):
         print(f"TG 通知失败: {e}")
 
 def send_telegram_photo(photo_path, caption=""):
-    """发送 Telegram 图片通知"""
     if not TG_BOT:
         return
     try:
@@ -45,15 +43,12 @@ def send_telegram_photo(photo_path, caption=""):
         print(f"TG 图片发送失败: {e}")
 
 def process_account(sb, username, password):
-    """处理单个账号及其下的所有服务续期"""
     print(f"\n[+] 开始处理账号: {username}")
     account_report = [f"👤 账号: <b>{username}</b>"]
 
-    # 锁定真正 CF 验证码的特征选择器
     cf_selector = 'iframe[title*="Cloudflare"], iframe[src*="challenge"], iframe[src*="turnstile"]'
 
     try:
-        # ---------------- 1. 登录 ----------------
         print(" -> 正在访问登录页面...")
         sb.maximize_window()
         sb.uc_open_with_reconnect(LOGIN_URL, 6)
@@ -98,7 +93,6 @@ def process_account(sb, username, password):
         if not login_ready:
             raise Exception("登录框加载超时，未能突破拦截")
 
-        # ---------------- 2. 输入账号密码 ----------------
         print(" -> 填写账号...")
         sb.type('input[name="identifier"]', username, timeout=10)
 
@@ -133,7 +127,6 @@ def process_account(sb, username, password):
 
         print(" -> 登录成功！")
 
-        # ---------------- 3. 处理所有续期链接 ----------------
         for url in RENEW_URLS:
             try:
                 server_id = url.split('id=')[-1]
@@ -208,12 +201,11 @@ def main():
     accounts = [line.strip() for line in ZAMPTO_ACCOUNT.split('\n') if line.strip()]
     final_reports = ["<b>Zampto 自动化续期汇总</b>"]
 
-    # 🔥 关键修复：移除无效的 disable_gpu 参数，只保留 SB 支持的参数
+    # 🔥 关键修复：只保留 SB() 原生支持的参数
     with SB(
         uc=True, 
         proxy=LOCAL_PROXY, 
-        headless2=True,
-        no_sandbox=True
+        headless2=True
     ) as sb:
         for acc in accounts:
             if ':' not in acc: continue
