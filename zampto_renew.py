@@ -16,7 +16,7 @@ ZAMPTO_ACCOUNT = os.environ.get('ZAMPTO_ACCOUNT', '')
 TG_BOT = os.environ.get('TG_BOT', '')
 USE_PROXY = os.environ.get('USE_PROXY') == 'true'
 
-# 🔥 修复：正确读取环境变量代理（支持 WebShare）
+# 正确读取环境变量代理（支持 WebShare）
 LOCAL_PROXY = os.environ.get("LOCAL_PROXY", "socks5://127.0.0.1:10808") if USE_PROXY else None
 
 def send_telegram_msg(message):
@@ -56,22 +56,19 @@ def process_account(sb, username, password):
         # ---------------- 1. 登录 ----------------
         print(" -> 正在访问登录页面...")
         sb.maximize_window()
-        sb.uc_open_with_reconnect(LOGIN_URL, 6)  # 🔥 修复：加长等待，保证住宅IP加载完成
+        sb.uc_open_with_reconnect(LOGIN_URL, 6)
 
         print(" -> 正在智能侦测页面状态 (最高等待 60 秒)...")
         login_ready = False
         for i in range(30):
-            # 雷达扫描 1：如果账号框的代码存在了，说明可以直接登录了
             if sb.is_element_present('input[name="identifier"]'):
                 print("    [+] 拦截已解除，登录框已就绪！")
                 login_ready = True
                 break
 
-            # 雷达扫描 2：只要网页源码里有 iframe 或者特定的拦截文字，立刻进行打击
             if sb.is_element_present('iframe') or sb.is_text_visible("Verify you are human") or sb.is_text_visible("security verification"):
                 print(f"    [!] 发现全局拦截盾牌 (第 {i+1} 次扫描)，尝试物理破盾...")
                 
-                # 尝试将它拉到屏幕中央
                 try:
                     sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element('iframe'))
                     time.sleep(1)
@@ -80,14 +77,12 @@ def process_account(sb, username, password):
                     pass
                 time.sleep(1)
                 
-                # 方案 A：官方物理鼠标点击
                 try:
                     sb.uc_gui_click_captcha()
                 except:
                     pass
                 time.sleep(3)
                 
-                # 方案 B：高权限拟人点击
                 try:
                     if sb.is_element_present(cf_selector):
                         sb.uc_click(cf_selector)
@@ -121,7 +116,6 @@ def process_account(sb, username, password):
         time.sleep(12)
 
         print(" -> 准备执行多重拟人点击...")
-        # 登录环节的 CF 验证处理
         try:
             if sb.is_element_present(cf_selector):
                 sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
@@ -164,14 +158,12 @@ def process_account(sb, username, password):
                 sb.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(3)
 
-                # 点击续期按钮
                 renew_btn_selector = 'button:contains("Free Renew"), button:contains("Renew"), a:contains("Renew")'
                 if sb.is_element_visible(renew_btn_selector, timeout=5):
                     print(f" -> [服务 {server_id}] 已强制点击续期按钮，正在加载弹窗验证码...")
                     sb.uc_click(renew_btn_selector)
                     time.sleep(8)
 
-                    # 处理弹窗验证码
                     try:
                         if sb.is_element_present(cf_selector):
                             sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
@@ -216,11 +208,11 @@ def main():
     accounts = [line.strip() for line in ZAMPTO_ACCOUNT.split('\n') if line.strip()]
     final_reports = ["<b>Zampto 自动化续期汇总</b>"]
 
+    # 🔥 关键修复：移除无效的 disable_gpu 参数，只保留 SB 支持的参数
     with SB(
         uc=True, 
         proxy=LOCAL_PROXY, 
-        headless2=True,  # 🔥 修复：用更稳定的无头模式
-        disable_gpu=True,
+        headless2=True,
         no_sandbox=True
     ) as sb:
         for acc in accounts:
