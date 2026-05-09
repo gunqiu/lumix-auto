@@ -71,6 +71,13 @@ def process_account(sb, username, password):
             if sb.is_element_present('iframe') or sb.is_text_visible("Verify you are human") or sb.is_text_visible("security verification"):
                 print(f"    [!] 发现全局拦截盾牌 (第 {i+1} 次扫描)，尝试物理破盾...")
                 
+                # 方案 A：官方物理鼠标点击（优先执行，和原始仓库一致）
+                try:
+                    sb.uc_gui_click_captcha()
+                except:
+                    pass
+                time.sleep(3) # 给验证系统反应时间
+                
                 # 尝试将它拉到屏幕中央
                 try:
                     sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element('iframe'))
@@ -80,14 +87,7 @@ def process_account(sb, username, password):
                     pass
                 time.sleep(1)
                 
-                # 方案 A：官方物理鼠标点击
-                try:
-                    sb.uc_gui_click_captcha()
-                except:
-                    pass
-                time.sleep(3)
-                
-                # 方案 B：高权限拟人点击
+                # 方案 B：高权限拟人点击（作为补充）
                 try:
                     if sb.is_element_present(cf_selector):
                         sb.uc_click(cf_selector)
@@ -96,7 +96,7 @@ def process_account(sb, username, password):
                 except:
                     pass
                 
-                time.sleep(4)
+                time.sleep(4) # 给破盾后网络跳转留出缓冲时间
             else:
                 time.sleep(2)
 
@@ -121,13 +121,13 @@ def process_account(sb, username, password):
         time.sleep(12)
 
         print(" -> 准备执行多重拟人点击...")
-        # 登录环节的 CF 验证处理
+        # 登录环节的 CF 验证处理（和原始仓库顺序一致）
         try:
+            sb.uc_gui_click_captcha()
+            time.sleep(2)
             if sb.is_element_present(cf_selector):
                 sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
                 time.sleep(1)
-                sb.uc_gui_click_captcha()
-                time.sleep(2)
                 sb.uc_click(cf_selector)
             else:
                 sb.uc_click('iframe')
@@ -171,13 +171,13 @@ def process_account(sb, username, password):
                     sb.uc_click(renew_btn_selector)
                     time.sleep(8)
 
-                    # 处理弹窗验证码
+                    # 处理弹窗验证码（和原始仓库顺序一致）
                     try:
+                        sb.uc_gui_click_captcha()
+                        time.sleep(2)
                         if sb.is_element_present(cf_selector):
                             sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
                             time.sleep(1)
-                            sb.uc_gui_click_captcha()
-                            time.sleep(2)
                             sb.uc_click(cf_selector)
                     except:
                         pass
