@@ -11,10 +11,13 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: 📥 下载公库代码
+        uses: actions/checkout@v4
+
       - name: 📥 下载私库脚本
         uses: actions/checkout@v4
         with:
-          repository: gunqiu/Zampto-Renew
+          repository: kanezikii/Zampto-Renew
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private
 
@@ -26,26 +29,54 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: 🛠️ 安装依赖
+      - name: 🛠️ 安装系统与 Python 依赖
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y google-chrome-stable xvfb x11-utils xdotool
           pip install seleniumbase requests
           seleniumbase install chromedriver
 
-      - name: 🛡️ 配置 WebShare 住宅代理
+      - name: 🛡️ 启动 Xray 代理转发
+        env:
+          XRAY_CONFIG: ${{ secrets.XRAY_CONFIG }}
         run: |
-          # 这里填你选的节点（推荐美国布法罗节点）
-          echo "LOCAL_PROXY=socks5://奈丹克尔:i9LLWB5UE1ZX@198.23.239.134:6540" >> $GITHUB_ENV
-          echo "USE_PROXY=true" >> $GITHUB_ENV
-          echo "✅ 已配置 WebShare 代理"
+          # 在 Bash 脚本层面进行判断，完美绕过 GitHub Actions 的限制
+          if [ -z "$XRAY_CONFIG" ]; then
+            echo "未配置 XRAY_CONFIG，跳过 Xray 代理启动"
+          else
+            echo "📦 正在下载并配置 Xray..."
+            wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+            unzip -q Xray-linux-64.zip -d xray_bin
+            chmod +x xray_bin/xray
+            
+            # 将 Secret 中的 JSON 写入配置文件
+            echo "$XRAY_CONFIG" > xray_bin/config.json
+            
+            # 后台启动 Xray
+            nohup ./xray_bin/xray run -c ./xray_bin/config.json > xray.log 2>&1 &
+            sleep 4
+            
+            # 测试代理是否通畅 (v2rayN 导出的默认本地 SOCKS 端口通常是 10808)
+            echo "🌐 测试通过代理获取的出口 IP:"
+            curl -s -x socks5h://127.0.0.1:10808 https://api.ipify.org || echo "⚠️ 代理测试超时或失败，但将继续执行"
+            echo -e "\n✅ Xray 代理服务已就绪"
+          fi
 
       - name: 🚀 运行续期脚本
         env:
           PYTHONIOENCODING: utf-8
           ZAMPTO_ACCOUNT: ${{ secrets.ZAMPTO_ACCOUNT }}
           TG_BOT: ${{ secrets.TG_BOT }}
+          XRAY_CONFIG: ${{ secrets.XRAY_CONFIG }}
         run: |
+          # 根据配置情况，自动为 Python 脚本设置是否启用代理的开关
+          if [ -n "$XRAY_CONFIG" ]; then
+            export USE_PROXY="true"
+            echo "🌐 代理已激活，准备通过节点续期..."
+          else
+            export USE_PROXY="false"
+            echo "⚠️ 未使用代理模式"
+          fi
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python zampto_renew.py
 
       - name: 📸 上传调试截图
