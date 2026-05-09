@@ -121,14 +121,14 @@ def process_account(sb, username, password):
         time.sleep(12)
 
         print(" -> 准备执行多重拟人点击...")
-        # 登录环节的 CF 验证处理
+        # 登录环节的 CF 验证处理 —— 【已修复：顺序完全对齐原始仓库】
         try:
             if sb.is_element_present(cf_selector):
                 sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
                 time.sleep(1)
-                sb.uc_gui_click_captcha()
-                time.sleep(2)
                 sb.uc_click(cf_selector)
+                time.sleep(2)
+                sb.uc_gui_click_captcha()
             else:
                 sb.uc_click('iframe')
         except:
@@ -171,14 +171,14 @@ def process_account(sb, username, password):
                     sb.uc_click(renew_btn_selector)
                     time.sleep(8)
 
-                    # 处理弹窗验证码
+                    # 处理弹窗验证码 —— 【已修复：顺序完全对齐原始仓库】
                     try:
                         if sb.is_element_present(cf_selector):
                             sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
                             time.sleep(1)
-                            sb.uc_gui_click_captcha()
-                            time.sleep(2)
                             sb.uc_click(cf_selector)
+                            time.sleep(2)
+                            sb.uc_gui_click_captcha()
                     except:
                         pass
 
