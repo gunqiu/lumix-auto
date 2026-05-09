@@ -16,8 +16,8 @@ ZAMPTO_ACCOUNT = os.environ.get('ZAMPTO_ACCOUNT', '')
 TG_BOT = os.environ.get('TG_BOT', '')
 USE_PROXY = os.environ.get('USE_PROXY') == 'true'
 
-# 使用 Xray 代理的默认本地 SOCKS5 端口
-LOCAL_PROXY = "socks5://127.0.0.1:10808" if USE_PROXY else None
+# 🔥 修复：正确读取环境变量代理（支持 WebShare）
+LOCAL_PROXY = os.environ.get("LOCAL_PROXY", "socks5://127.0.0.1:10808") if USE_PROXY else None
 
 def send_telegram_msg(message):
     """发送 Telegram 纯文本通知"""
@@ -56,7 +56,7 @@ def process_account(sb, username, password):
         # ---------------- 1. 登录 ----------------
         print(" -> 正在访问登录页面...")
         sb.maximize_window()
-        sb.uc_open_with_reconnect(LOGIN_URL, 4)
+        sb.uc_open_with_reconnect(LOGIN_URL, 6)  # 🔥 修复：加长等待，保证住宅IP加载完成
 
         print(" -> 正在智能侦测页面状态 (最高等待 60 秒)...")
         login_ready = False
@@ -121,7 +121,7 @@ def process_account(sb, username, password):
         time.sleep(12)
 
         print(" -> 准备执行多重拟人点击...")
-        # 登录环节的 CF 验证处理 —— 【已修复：顺序完全对齐原始仓库】
+        # 登录环节的 CF 验证处理
         try:
             if sb.is_element_present(cf_selector):
                 sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
@@ -171,7 +171,7 @@ def process_account(sb, username, password):
                     sb.uc_click(renew_btn_selector)
                     time.sleep(8)
 
-                    # 处理弹窗验证码 —— 【已修复：顺序完全对齐原始仓库】
+                    # 处理弹窗验证码
                     try:
                         if sb.is_element_present(cf_selector):
                             sb.execute_script("arguments[0].scrollIntoView({block: 'center'});", sb.find_element(cf_selector))
@@ -216,7 +216,13 @@ def main():
     accounts = [line.strip() for line in ZAMPTO_ACCOUNT.split('\n') if line.strip()]
     final_reports = ["<b>Zampto 自动化续期汇总</b>"]
 
-    with SB(uc=True, proxy=LOCAL_PROXY, headless=True) as sb:
+    with SB(
+        uc=True, 
+        proxy=LOCAL_PROXY, 
+        headless2=True,  # 🔥 修复：用更稳定的无头模式
+        disable_gpu=True,
+        no_sandbox=True
+    ) as sb:
         for acc in accounts:
             if ':' not in acc: continue
             user, pwd = acc.split(':', 1)
