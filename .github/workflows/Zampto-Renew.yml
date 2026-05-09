@@ -35,14 +35,10 @@ jobs:
 
       - name: 🛡️ 配置 WebShare 住宅代理
         run: |
-          # 这里填你选的节点
+          # 这里填你选的节点（推荐美国布法罗节点）
           echo "LOCAL_PROXY=socks5://奈丹克尔:i9LLWB5UE1ZX@198.23.239.134:6540" >> $GITHUB_ENV
           echo "USE_PROXY=true" >> $GITHUB_ENV
-          echo "✅ 已启用 WebShare 住宅代理"
-
-          # 测试代理
-          echo "🌐 当前出口 IP:"
-          curl -s -x socks5h://奈丹克尔:i9LLWB5UE1ZX@198.23.239.134:6540 https://api.ipify.org
+          echo "✅ 已配置 WebShare 代理"
 
       - name: 🚀 运行续期脚本
         env:
